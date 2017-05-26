@@ -54,6 +54,9 @@ instance Ord Position where
 
 data Board = Board(Map.Map Position Color)
 
+instance Show Board where
+  show (Board map) = showBoard (Board map)
+
 addToBoard :: Position -> Color -> Board -> Board
 addToBoard pos col (Board prevMap) = Board(Map.insert pos col prevMap)
 
@@ -66,6 +69,9 @@ checkPosAvailable :: Position -> Board -> Bool
 checkPosAvailable pos (Board boardMap)
   | Map.notMember pos boardMap  = True
   | otherwise                   = False
+
+checkPos :: Position -> Board -> Bool
+checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 
 getAllAvailablePos :: Board -> [Position]
 getAllAvailablePos = undefined
@@ -82,7 +88,7 @@ getFromPlayer col board = do
 -------------------------------------
 
 showBoard :: Board -> String
-showBoard board = upDownLabel ++ getAllStringRows board ++ upDownLabel
+showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel
 
 showDisc :: Board -> Position -> String
 showDisc (Board boardMap) pos
@@ -100,7 +106,7 @@ getAllStringRows :: Board -> String
 getAllStringRows board = concat [(packRow board row) ++ "\n" | row <- nums]
 
 upDownLabel :: String
-upDownLabel = "  A B C D E F G H I J K L M N O P Q R S \n"
+upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- chars] ++ "\n"
 
 -------------------------------------
 
@@ -113,7 +119,7 @@ charToString c = [c]
 -------------------------------------
 
 main = do
-  putStrLn "================ Gomoku ================\n"
+  putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
   putStrLn (showBoard myBoard)
 
 
