@@ -15,6 +15,15 @@ import qualified Data.Tree as Tree
 
 -------------------------------------
 
+myBoard = Board(Map.empty)
+--newBoard = addToBoard (Position 3 4) Black myBoard
+--newBoard2 = addToBoard (Position 10 13) White newBoard
+
+nums = [1,2..19]
+chars = ['A'..'S']
+
+-------------------------------------
+
 data Color =
   Black
   | White
@@ -72,39 +81,40 @@ getFromPlayer col board = do
 
 -------------------------------------
 
+showBoard :: Board -> String
+showBoard board = upDownLabel ++ getAllStringRows board ++ upDownLabel
+
 showDisc :: Board -> Position -> String
 showDisc (Board boardMap) pos
   |Map.member pos boardMap      = show (getBare(Map.lookup pos boardMap)) ++ " "
   |otherwise                    = "- "
 
 getStringRow :: Board -> Int -> String
-getStringRow board row = concat [showDisc board (Position row col) | col <- [1,2..19]]
+getStringRow board row = concat [showDisc board (Position row col) | col <- nums]
 
-packRow :: String -> String
-packRow = undefined
+packRow :: Board -> Int -> String
+packRow board row = charToString (chars !! (row - 1)) ++ " "
+  ++ getStringRow board row ++ charToString(chars !! (row - 1))
 
 getAllStringRows :: Board -> String
-getAllStringRows board = concat [(getStringRow board row) ++ "\n" | row <- [1,2..19]]
+getAllStringRows board = concat [(packRow board row) ++ "\n" | row <- nums]
 
-showBoard :: Board -> String
-showBoard board = getAllStringRows board
+upDownLabel :: String
+upDownLabel = "  A B C D E F G H I J K L M N O P Q R S \n"
 
 -------------------------------------
 
 getBare :: Maybe t -> t
 getBare (Just x) = x
 
--------------------------------------
-
-myBoard = Board(Map.empty)
-newBoard = addToBoard (Position 3 4) Black myBoard
-newBoard2 = addToBoard (Position 10 13) White newBoard
+charToString :: Char -> String
+charToString c = [c]
 
 -------------------------------------
 
 main = do
-  putStrLn "Gomoku"
-  putStrLn (showBoard newBoard2)
+  putStrLn "================ Gomoku ================\n"
+  putStrLn (showBoard myBoard)
 
 
 -- levels (lista do poziomu)
