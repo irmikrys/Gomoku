@@ -22,6 +22,7 @@ myBoard = Board(Map.empty)
 nums = [1,2..19]
 chars = ['A'..'S']
 currCol = White
+move = 0
 
 -------------------------------------
 
@@ -38,7 +39,7 @@ instance Show Color where
 data Position = Position Int Int
 
 instance Show Position where
-  show (Position x1 x2) = "Pos(" ++ show x1 ++ ", " ++ show x2 ++ ")"
+  show (Position x1 x2) = "Pos(" ++ show x1 ++ "," ++ show x2 ++ ")"
 
 instance Eq Position where
   Position x1 y1 == Position x2 y2 = x1 == x2 && y1 == y2
@@ -61,6 +62,17 @@ instance Show Board where
 addToBoard :: Position -> Color -> Board -> Board
 addToBoard pos col (Board prevMap) = Board(Map.insert pos col prevMap)
 
+getFromPlayer :: Color -> Board -> IO ()
+getFromPlayer col board = do
+  putStrLn ("Player: " ++ show col ++ ", choose position: ")
+  x <- getLine
+  y <- getLine
+  let pos = Position (read x) (read y)
+  putStrLn (show pos)
+  --if checkPosRange pos then addToBoard pos col board else board
+
+-------------------------------------
+
 checkPosRange :: Position -> Bool
 checkPosRange (Position x y)
   | x > 0 && x < 20 && y > 0 && y < 20  = True
@@ -74,22 +86,18 @@ checkPosAvailable pos (Board boardMap)
 checkPos :: Position -> Board -> Bool
 checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 
-getAllAvailablePos :: Board -> [Position]
-getAllAvailablePos = undefined
+getFreePos :: Position -> Board -> Position
+getFreePos pos board
+  | checkPos pos board  = getBare (Just pos)
+  | otherwise           = Nothing
 
-getFromPlayer :: Color -> Board -> IO ()
-getFromPlayer col board = do
-  putStrLn ("Player: " ++ show col ++ ", choose position: ")
-  x <- getLine
-  y <- getLine
-  let pos = Position (read x) (read y)
-  putStrLn (show pos)
-  --if checkPosRange pos then addToBoard pos col board else board
+getAllFreePos :: Board -> [Position]
+getAllFreePos board = [getFreePos (Position i j) board | i <- nums, j <- nums]
 
 -------------------------------------
 
 showBoard :: Board -> String
-showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel ++ playerLabel currCol
+showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel ++ playerLabel move
 
 showDisc :: Board -> Position -> String
 showDisc (Board boardMap) pos
@@ -109,8 +117,10 @@ getAllStringRows board = concat [(packRow board row) ++ "\n" | row <- nums]
 upDownLabel :: String
 upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- chars] ++ "\n"
 
-playerLabel :: Color -> String
-playerLabel col = "\nPlayer: " ++ show col ++ "\n"
+playerLabel :: Int -> String
+playerLabel move
+   | move `mod` 2 == 0  = "\nPlayer: " ++ show White ++ "\n"
+   | otherwise          = "\nPlayer: " ++ show Black ++ "\n"
 
 -------------------------------------
 
