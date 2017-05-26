@@ -1,9 +1,17 @@
+--(.) :: (b->c) -> (a->b) -> (a->c)
+-- f . g = \x -> f (g x)
+--(f . g) x = f (g x)
+
+--curry/uncurry - bierze zamiast krotki argumenty/ zamiast zrgumentow krotke
+--implementacja curry/uncarry
+-- c f x y = f (x,y)
 -------------------------------------
 
 module Board where
 
 import Data.Maybe
 import qualified Data.Map.Strict as Map
+import qualified Data.Tree as Tree
 
 -------------------------------------
 
@@ -37,41 +45,66 @@ instance Ord Position where
 
 data Board = Board(Map.Map Position Color)
 
-getBare (Just x) = x
+addToBoard :: Position -> Color -> Board -> Board
+addToBoard pos col (Board prevMap) = Board(Map.insert pos col prevMap)
+
+checkPosRange :: Position -> Bool
+checkPosRange (Position x y)
+  | x > 0 && x < 20 && y > 0 && y < 20  = True
+  | otherwise                           = False
+
+checkPosAvailable :: Position -> Board -> Bool
+checkPosAvailable pos (Board boardMap)
+  | Map.notMember pos boardMap  = True
+  | otherwise                   = False
+
+getAllAvailablePos :: Board -> [Position]
+getAllAvailablePos = undefined
+
+getFromPlayer :: Color -> Board -> IO ()
+getFromPlayer col board = do
+  putStrLn ("Player: " ++ show col ++ ", choose position: ")
+  x <- getLine
+  y <- getLine
+  let pos = Position (read x) (read y)
+  putStrLn (show pos)
+  --if checkPosRange pos then addToBoard pos col board else board
+
+-------------------------------------
 
 showDisc :: Board -> Position -> String
 showDisc (Board boardMap) pos
-  |Map.member pos boardMap      = show (getBare(Map.lookup pos boardMap))
-  |otherwise                    = "."
+  |Map.member pos boardMap      = show (getBare(Map.lookup pos boardMap)) ++ " "
+  |otherwise                    = "- "
 
 getStringRow :: Board -> Int -> String
-getStringRow board row = rowString
-  where
-    rowString = concat [(showDisc board (Position row col) ++ " ") | col <- [1,2..19]]
+getStringRow board row = concat [showDisc board (Position row col) | col <- [1,2..19]]
+
+packRow :: String -> String
+packRow = undefined
 
 getAllStringRows :: Board -> String
-getAllStringRows board = allRowsString
-  where
-    allRowsString = concat [(getStringRow board row) ++ "\n" | row <- [1,2..19]]
+getAllStringRows board = concat [(getStringRow board row) ++ "\n" | row <- [1,2..19]]
 
 showBoard :: Board -> String
-showBoard board = result
-  where
-    result = getAllStringRows board
+showBoard board = getAllStringRows board
 
-addToBoard :: Board -> Position -> Color -> Board
-addToBoard (Board prevMap) pos col = Board(Map.insert pos col prevMap)
+-------------------------------------
+
+getBare :: Maybe t -> t
+getBare (Just x) = x
 
 -------------------------------------
 
 myBoard = Board(Map.empty)
-newBoard = addToBoard myBoard (Position 3 4) Black
-newBoard2 = addToBoard newBoard (Position 10 13) White
+newBoard = addToBoard (Position 3 4) Black myBoard
+newBoard2 = addToBoard (Position 10 13) White newBoard
 
 -------------------------------------
 
 main = do
   putStrLn "Gomoku"
-  putStrLn (show Black)
-  putStrLn (show White)
   putStrLn (showBoard newBoard2)
+
+
+-- levels (lista do poziomu)
