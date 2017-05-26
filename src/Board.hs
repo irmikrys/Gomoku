@@ -13,7 +13,7 @@ import Data.Maybe
 import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
 
--------------------------------------
+------------ globals ----------------
 
 myBoard = Board(Map.empty)
 --newBoard = addToBoard (Position 3 4) Black myBoard
@@ -62,39 +62,7 @@ instance Show Board where
 addToBoard :: Position -> Color -> Board -> Board
 addToBoard pos col (Board prevMap) = Board(Map.insert pos col prevMap)
 
-getFromPlayer :: Color -> Board -> IO ()
-getFromPlayer col board = do
-  putStrLn ("Player: " ++ show col ++ ", choose position: ")
-  x <- getLine
-  y <- getLine
-  let pos = Position (read x) (read y)
-  putStrLn (show pos)
-  --if checkPosRange pos then addToBoard pos col board else board
-
--------------------------------------
-
-checkPosRange :: Position -> Bool
-checkPosRange (Position x y)
-  | x > 0 && x < 20 && y > 0 && y < 20  = True
-  | otherwise                           = False
-
-checkPosAvailable :: Position -> Board -> Bool
-checkPosAvailable pos (Board boardMap)
-  | Map.notMember pos boardMap  = True
-  | otherwise                   = False
-
-checkPos :: Position -> Board -> Bool
-checkPos pos board = checkPosRange pos && checkPosAvailable pos board
-
-getFreePos :: Position -> Board -> Position
-getFreePos pos board
-  | checkPos pos board  = getBare (Just pos)
-  | otherwise           = Nothing
-
-getAllFreePos :: Board -> [Position]
-getAllFreePos board = [getFreePos (Position i j) board | i <- nums, j <- nums]
-
--------------------------------------
+---------- showing board ------------
 
 showBoard :: Board -> String
 showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel ++ playerLabel move
@@ -122,7 +90,39 @@ playerLabel move
    | move `mod` 2 == 0  = "\nPlayer: " ++ show White ++ "\n"
    | otherwise          = "\nPlayer: " ++ show Black ++ "\n"
 
--------------------------------------
+--------- free positions ------------
+
+checkPosRange :: Position -> Bool
+checkPosRange (Position x y)
+  | x > 0 && x < 20 && y > 0 && y < 20  = True
+  | otherwise                           = False
+
+checkPosAvailable :: Position -> Board -> Bool
+checkPosAvailable pos (Board boardMap)
+  | Map.notMember pos boardMap  = True
+  | otherwise                   = False
+
+checkPos :: Position -> Board -> Bool
+checkPos pos board = checkPosRange pos && checkPosAvailable pos board
+
+getAllFreePos :: Board -> [Position]
+getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
+
+----------- player input ------------
+
+askPlayer :: Color -> IO ()
+askPlayer col =
+  do
+    putStrLn ("Player: " ++ show col ++ ", choose position: ")
+    x <- getLine
+    y <- getLine
+    let pos = Position (read x) (read y)
+    putStrLn (show pos)
+
+getFromPlayer :: Color -> Board -> Board
+getFromPlayer col board = undefined
+
+------------- helpful ---------------
 
 getBare :: Maybe t -> t
 getBare (Just x) = x
@@ -130,7 +130,7 @@ getBare (Just x) = x
 charToString :: Char -> String
 charToString c = [c]
 
--------------------------------------
+-------------- main -----------------
 
 main = do
   putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
