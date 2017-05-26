@@ -21,6 +21,7 @@ myBoard = Board(Map.empty)
 
 nums = [1,2..19]
 chars = ['A'..'S']
+currCol = White
 
 -------------------------------------
 
@@ -88,7 +89,7 @@ getFromPlayer col board = do
 -------------------------------------
 
 showBoard :: Board -> String
-showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel
+showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel ++ playerLabel currCol
 
 showDisc :: Board -> Position -> String
 showDisc (Board boardMap) pos
@@ -107,6 +108,9 @@ getAllStringRows board = concat [(packRow board row) ++ "\n" | row <- nums]
 
 upDownLabel :: String
 upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- chars] ++ "\n"
+
+playerLabel :: Color -> String
+playerLabel col = "\nPlayer: " ++ show col ++ "\n"
 
 -------------------------------------
 
