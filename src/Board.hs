@@ -15,7 +15,7 @@ import qualified Data.Tree as Tree
 
 ------------ globals ----------------
 
-myBoard = Board(Map.empty)
+myBoard = Board Map.empty
 --newBoard = addToBoard (Position 3 4) Black myBoard
 --newBoard2 = addToBoard (Position 10 13) White newBoard
 
@@ -33,6 +33,12 @@ data Color =
 instance Show Color where
   show Black = "\9787"
   show White = "\9786"
+
+instance Read Color where
+  readsPrec _ input
+    | head input == 'W' = [(White, tail input)]
+    | head input == 'B' = [(Black, tail input)]
+    | otherwise = []
 
 -------------------------------------
 
@@ -54,10 +60,10 @@ instance Ord Position where
 
 -------------------------------------
 
-data Board = Board(Map.Map Position Color)
+newtype Board = Board(Map.Map Position Color)
 
 instance Show Board where
-  show (Board map) = showBoard (Board map)
+  show = showBoard
 
 addToBoard :: Position -> Color -> Board -> Board
 addToBoard pos col (Board prevMap) = Board(Map.insert pos col prevMap)
@@ -80,7 +86,7 @@ packRow board row = charToString (chars !! (row - 1)) ++ " "
   ++ getStringRow board row ++ charToString(chars !! (row - 1))
 
 getAllStringRows :: Board -> String
-getAllStringRows board = concat [(packRow board row) ++ "\n" | row <- nums]
+getAllStringRows board = concat [packRow board row ++ "\n" | row <- nums]
 
 upDownLabel :: String
 upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- chars] ++ "\n"
@@ -89,6 +95,20 @@ playerLabel :: Int -> String
 playerLabel move
    | move `mod` 2 == 0  = "\nPlayer: " ++ show White ++ "\n"
    | otherwise          = "\nPlayer: " ++ show Black ++ "\n"
+
+----------- player input ------------
+
+askPlayer :: Color -> IO ()
+askPlayer col =
+  do
+    putStrLn ("Player: " ++ show col ++ ", choose position: ")
+    x <- getLine
+    y <- getLine
+    let pos = Position (read x) (read y)
+    print pos
+
+getFromPlayer :: Color -> Board -> Board
+getFromPlayer col board = undefined
 
 --------- free positions ------------
 
@@ -108,19 +128,9 @@ checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 getAllFreePos :: Board -> [Position]
 getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
 
------------ player input ------------
+---------- kolejne ruchy ------------
 
-askPlayer :: Color -> IO ()
-askPlayer col =
-  do
-    putStrLn ("Player: " ++ show col ++ ", choose position: ")
-    x <- getLine
-    y <- getLine
-    let pos = Position (read x) (read y)
-    putStrLn (show pos)
 
-getFromPlayer :: Color -> Board -> Board
-getFromPlayer col board = undefined
 
 ------------- helpful ---------------
 
@@ -134,7 +144,7 @@ charToString c = [c]
 
 main = do
   putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
-  putStrLn (showBoard myBoard)
+  print myBoard
 
 
 -- levels (lista do poziomu)
