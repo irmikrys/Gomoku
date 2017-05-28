@@ -22,7 +22,6 @@ myBoard = Board Map.empty
 nums = [1,2..19]
 chars = ['A'..'S']
 currCol = White
-move = 0
 
 -------------------------------------
 
@@ -60,18 +59,34 @@ instance Ord Position where
 
 -------------------------------------
 
+data Game = Game Board Color
+
+instance Show Game where
+  show (Game board col) = showBoard board ++ playerLabel col
+
+----------- player label ------------
+
+playerLabel :: Color -> String
+playerLabel col = "\nPlayer: " ++ show col ++ "\n"
+
+-------------------------------------
+
 newtype Board = Board(Map.Map Position Color)
 
 instance Show Board where
   show = showBoard
 
+-------------------------------------
+
 addToBoard :: Position -> Color -> Board -> Board
-addToBoard pos col (Board prevMap) = Board(Map.insert pos col prevMap)
+addToBoard pos col board@(Board prevMap)
+  | checkPos pos board  = Board(Map.insert pos col prevMap)
+  | otherwise           = board
 
 ---------- showing board ------------
 
 showBoard :: Board -> String
-showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel ++ playerLabel move
+showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel
 
 showDisc :: Board -> Position -> String
 showDisc (Board boardMap) pos
@@ -91,24 +106,20 @@ getAllStringRows board = concat [packRow board row ++ "\n" | row <- nums]
 upDownLabel :: String
 upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- chars] ++ "\n"
 
-playerLabel :: Int -> String
-playerLabel move
-   | move `mod` 2 == 0  = "\nPlayer: " ++ show White ++ "\n"
-   | otherwise          = "\nPlayer: " ++ show Black ++ "\n"
-
 ----------- player input ------------
 
-askPlayer :: Color -> IO ()
-askPlayer col =
+askPlayer :: Game -> IO ()
+askPlayer (Game board col) =
   do
     putStrLn ("Player: " ++ show col ++ ", choose position: ")
     x <- getLine
     y <- getLine
-    let pos = Position (read x) (read y)
-    print pos
+    let boardAsked = addToBoard (parseToPosition x y) col board
+    print boardAsked
 
-getFromPlayer :: Color -> Board -> Board
-getFromPlayer col board = undefined
+parseToPosition :: String -> String -> Position
+parseToPosition x y =
+  Position (read x) (read y)
 
 --------- free positions ------------
 
@@ -128,9 +139,11 @@ checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 getAllFreePos :: Board -> [Position]
 getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
 
----------- kolejne ruchy ------------
+---------- next moves ------------
 
-
+nextPossibleMoves :: Game -> [Game]
+nextPossibleMoves (Game board@(Board boardMap) color) =
+  [Game (addToBoard (Position i j) color board) color | i <- nums, j <- nums, checkPos (Position i j) board]
 
 ------------- helpful ---------------
 
