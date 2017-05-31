@@ -1,10 +1,4 @@
---(.) :: (b->c) -> (a->b) -> (a->c)
--- f . g = \x -> f (g x)
---(f . g) x = f (g x)
 
---curry/uncurry - bierze zamiast krotki argumenty/ zamiast zrgumentow krotke
---implementacja curry/uncarry
--- c f x y = f (x,y)
 -------------------------------------
 
 module Board where
@@ -28,6 +22,7 @@ currCol = White
 data Color =
   Black
   | White
+  deriving Eq
 
 instance Show Color where
   show Black = "\9787"
@@ -38,6 +33,12 @@ instance Read Color where
     | head input == 'W' = [(White, tail input)]
     | head input == 'B' = [(Black, tail input)]
     | otherwise = []
+
+
+changeColor :: Color -> Color
+changeColor col
+  |col == White   = Black
+  |otherwise      = White
 
 -------------------------------------
 
@@ -63,11 +64,6 @@ data Game = Game Board Color
 
 instance Show Game where
   show (Game board col) = showBoard board ++ playerLabel col
-
------------ player label ------------
-
-playerLabel :: Color -> String
-playerLabel col = "\nPlayer: " ++ show col ++ "\n"
 
 -------------------------------------
 
@@ -106,16 +102,22 @@ getAllStringRows board = concat [packRow board row ++ "\n" | row <- nums]
 upDownLabel :: String
 upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- chars] ++ "\n"
 
+----------- player label ------------
+
+playerLabel :: Color -> String
+playerLabel col = "\nPlayer: " ++ show col ++ "\n"
+
 ----------- player input ------------
 
 askPlayer :: Game -> IO ()
 askPlayer (Game board col) =
   do
+    print board
     putStrLn ("Player: " ++ show col ++ ", choose position: ")
     x <- getLine
     y <- getLine
-    let boardAsked = addToBoard (parseToPosition x y) col board
-    print boardAsked
+    let col2 = changeColor col
+    askPlayer (Game (addToBoard (parseToPosition x y) col board) col2)
 
 parseToPosition :: String -> String -> Position
 parseToPosition x y =
@@ -139,11 +141,15 @@ checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 getAllFreePos :: Board -> [Position]
 getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
 
----------- next moves ------------
+------------ next moves -------------
 
 nextPossibleMoves :: Game -> [Game]
 nextPossibleMoves (Game board@(Board boardMap) color) =
   [Game (addToBoard (Position i j) color board) color | i <- nums, j <- nums, checkPos (Position i j) board]
+
+---------- rate function ------------
+
+
 
 ------------- helpful ---------------
 
@@ -157,7 +163,13 @@ charToString c = [c]
 
 main = do
   putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
-  print myBoard
+  let scopeBoard = Board Map.empty
+  let col = White
+  askPlayer (Game scopeBoard col)
+  --putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
+  --print myBoard
+
 
 
 -- levels (lista do poziomu)
+-- Data.Tree.Pretty (rysowanie drzewa)
