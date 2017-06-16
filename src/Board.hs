@@ -10,12 +10,11 @@ import qualified Data.Tree as Tree
 ------------ globals ----------------
 
 myBoard = Board Map.empty
---newBoard = addToBoard (Position 3 4) Black myBoard
---newBoard2 = addToBoard (Position 10 13) White newBoard
 
 nums = [1,2..19]
 chars = ['A'..'S']
 currCol = White
+directions = [NorthEast, North, NorthWest, West, SouthWest, South, SouthEast, East]
 
 -------------------------------------
 
@@ -34,11 +33,22 @@ instance Read Color where
     | head input == 'B' = [(Black, tail input)]
     | otherwise = []
 
-
 changeColor :: Color -> Color
 changeColor col
   |col == White   = Black
   |otherwise      = White
+
+compareColors :: Maybe Color -> Color -> Bool
+compareColors c1 c2
+  |Data.Maybe.isJust c1 = getBare c1 == c2
+  |otherwise = False
+
+-------------------------------------
+
+data Direction =
+  NorthEast | North | NorthWest | West |
+  SouthWest | South | SouthEast | East
+    deriving Show
 
 -------------------------------------
 
@@ -57,6 +67,17 @@ instance Ord Position where
     | (x1 == x2 ) && (y1 > y2)  = GT
     | (x1 == x2 ) && (y1 < y2)  = LT
     | x1 < x2                   = LT
+
+getNeighbor :: Position -> Direction -> Position
+getNeighbor (Position x y) dir = case dir of
+  NorthEast -> Position (x - 1) (y + 1)
+  North     -> Position x (y + 1)
+  NorthWest -> Position (x + 1) (y + 1)
+  West      -> Position (x + 1) y
+  SouthWest -> Position (x + 1) (y - 1)
+  South     -> Position x (y - 1)
+  SouthEast -> Position (x - 1) (y - 1)
+  East      -> Position (x - 1) y
 
 -------------------------------------
 
@@ -78,6 +99,8 @@ addToBoard :: Position -> Color -> Board -> Board
 addToBoard pos col board@(Board prevMap)
   | checkPos pos board  = Board(Map.insert pos col prevMap)
   | otherwise           = board
+
+getMapValue cord (Board b) = Map.lookup cord b
 
 ---------- showing board ------------
 
@@ -123,7 +146,7 @@ parseToPosition :: String -> String -> Position
 parseToPosition x y =
   Position (read x) (read y)
 
---------- free positions ------------
+------------ next moves -------------
 
 checkPosRange :: Position -> Bool
 checkPosRange (Position x y)
@@ -141,15 +164,28 @@ checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 getAllFreePos :: Board -> [Position]
 getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
 
------------- next moves -------------
-
 nextPossibleMoves :: Game -> [Game]
 nextPossibleMoves (Game board@(Board boardMap) color) =
-  [Game (addToBoard (Position i j) color board) color | i <- nums, j <- nums, checkPos (Position i j) board]
+  [Game (addToBoard pos color board) color | pos <- getAllFreePos board]
+
+getPointNeighbors :: Position -> Board -> [Position] -> [Position]
+getPointNeighbors pos board neighList = [getNeighbor pos dir | dir <- directions]
+
+-- Position of last added point, list of already added to check positions,
+-- actual game state, returns new list with neighbors added
+nextMoves :: Position -> [Position] -> Game -> [Position]
+nextMoves pos posList (Game board col) =
+  newPosList where
+    neighbors = getPointNeighbors pos board posList
+    newPosList = posList ++ [x | x <- neighbors, x `notElem` posList]
 
 ---------- rate function ------------
 
 
+
+------------- game tree -------------
+
+infTree = Tree.Node 1 [infTree] -- drzewo nieskonczone
 
 ------------- helpful ---------------
 
