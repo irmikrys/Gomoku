@@ -18,9 +18,7 @@ directions = [NorthEast, North, NorthWest, West, SouthWest, South, SouthEast, Ea
 
 -------------------------------------
 
-data Color =
-  Black
-  | White
+data Color = Black | White
   deriving Eq
 
 instance Show Color where
@@ -55,7 +53,7 @@ data Direction =
 data Position = Position Int Int
 
 instance Show Position where
-  show (Position x1 x2) = "Pos(" ++ show x1 ++ "," ++ show x2 ++ ")"
+  show (Position x1 x2) = "P(" ++ show x1 ++ "," ++ show x2 ++ ")"
 
 instance Eq Position where
   Position x1 y1 == Position x2 y2 = x1 == x2 && y1 == y2
@@ -68,16 +66,21 @@ instance Ord Position where
     | (x1 == x2 ) && (y1 < y2)  = LT
     | x1 < x2                   = LT
 
+-- Get point neighbor by direction
 getNeighbor :: Position -> Direction -> Position
-getNeighbor (Position x y) dir = case dir of
-  NorthEast -> Position (x - 1) (y + 1)
-  North     -> Position x (y + 1)
-  NorthWest -> Position (x + 1) (y + 1)
-  West      -> Position (x + 1) y
-  SouthWest -> Position (x + 1) (y - 1)
-  South     -> Position x (y - 1)
-  SouthEast -> Position (x - 1) (y - 1)
-  East      -> Position (x - 1) y
+getNeighbor (Position row col) dir = case dir of
+  NorthEast -> Position (row - 1) (col - 1)
+  North     -> Position (row - 1) col
+  NorthWest -> Position (row - 1) (col + 1)
+  West      -> Position row (col + 1)
+  SouthWest -> Position (row + 1) (col + 1)
+  South     -> Position (row + 1) col
+  SouthEast -> Position (row + 1) (col - 1)
+  East      -> Position row (col - 1)
+
+-- Get all neighbors (in each direction from position)
+getPointNeighbors :: Position -> Board  -> [Position]
+getPointNeighbors pos board = [getNeighbor pos dir | dir <- directions]
 
 -------------------------------------
 
@@ -100,7 +103,8 @@ addToBoard pos col board@(Board prevMap)
   | checkPos pos board  = Board(Map.insert pos col prevMap)
   | otherwise           = board
 
-getMapValue cord (Board b) = Map.lookup cord b
+getMapValue :: Position -> Board -> Maybe Color
+getMapValue pos (Board b) = Map.lookup pos b
 
 ---------- showing board ------------
 
@@ -130,22 +134,6 @@ upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- chars] ++ "\n"
 playerLabel :: Color -> String
 playerLabel col = "\nPlayer: " ++ show col ++ "\n"
 
------------ player input ------------
-
-askPlayer :: Game -> IO ()
-askPlayer (Game board col) =
-  do
-    print board
-    putStrLn ("Player: " ++ show col ++ ", choose position: ")
-    x <- getLine
-    y <- getLine
-    let col2 = changeColor col
-    askPlayer (Game (addToBoard (parseToPosition x y) col board) col2)
-
-parseToPosition :: String -> String -> Position
-parseToPosition x y =
-  Position (read x) (read y)
-
 ------------ next moves -------------
 
 checkPosRange :: Position -> Bool
@@ -168,24 +156,38 @@ nextPossibleMoves :: Game -> [Game]
 nextPossibleMoves (Game board@(Board boardMap) color) =
   [Game (addToBoard pos color board) color | pos <- getAllFreePos board]
 
-getPointNeighbors :: Position -> Board -> [Position] -> [Position]
-getPointNeighbors pos board neighList = [getNeighbor pos dir | dir <- directions]
-
 -- Position of last added point, list of already added to check positions,
 -- actual game state, returns new list with neighbors added
 nextMoves :: Position -> [Position] -> Game -> [Position]
 nextMoves pos posList (Game board col) =
   newPosList where
-    neighbors = getPointNeighbors pos board posList
-    newPosList = posList ++ [x | x <- neighbors, x `notElem` posList]
+    neighbors = getPointNeighbors pos board
+    newPosList = posList ++ [x | x <- neighbors, x `notElem` posList, x /= pos, checkPosAvailable x board]
 
 ---------- rate function ------------
 
+-- Rates board after each move
 
 
 ------------- game tree -------------
 
 infTree = Tree.Node 1 [infTree] -- drzewo nieskonczone
+
+----------- player input ------------
+
+askPlayer :: Game -> IO ()
+askPlayer (Game board col) =
+  do
+    print board
+    putStrLn ("Player: " ++ show col ++ ", choose position: ")
+    x <- getLine
+    y <- getLine
+    let col2 = changeColor col
+    askPlayer (Game (addToBoard (parseToPosition x y) col board) col2)
+
+parseToPosition :: String -> String -> Position
+parseToPosition x y =
+  Position (read x) (read y)
 
 ------------- helpful ---------------
 
