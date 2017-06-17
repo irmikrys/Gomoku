@@ -79,8 +79,12 @@ getNeighbor (Position row col) dir = case dir of
   East      -> Position row (col - 1)
 
 -- Get all neighbors (in each direction from position)
+-- checks if neighbor isn't out of board or occupied
 getPointNeighbors :: Position -> Board  -> [Position]
-getPointNeighbors pos board = [getNeighbor pos dir | dir <- directions]
+getPointNeighbors pos board = neighbors
+  where
+    unchecked = [getNeighbor pos dir | dir <- directions]
+    neighbors = [n | n <- unchecked, checkPos n board]
 
 -------------------------------------
 
@@ -149,20 +153,24 @@ checkPosAvailable pos (Board boardMap)
 checkPos :: Position -> Board -> Bool
 checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 
+-- Not effective
 getAllFreePos :: Board -> [Position]
 getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
 
+-- Not effective
 nextPossibleMoves :: Game -> [Game]
 nextPossibleMoves (Game board@(Board boardMap) color) =
   [Game (addToBoard pos color board) color | pos <- getAllFreePos board]
 
 -- Position of last added point, list of already added to check positions,
 -- actual game state, returns new list with neighbors added
+-- New neighbors don't include elems already in posList, current pos and
+-- occupied positions (already defined in getPointNeighbors)
 nextMoves :: Position -> [Position] -> Game -> [Position]
 nextMoves pos posList (Game board col) =
   newPosList where
     neighbors = getPointNeighbors pos board
-    newPosList = posList ++ [x | x <- neighbors, x `notElem` posList, x /= pos, checkPosAvailable x board]
+    newPosList = posList ++ [x | x <- neighbors, x `notElem` posList, x /= pos]
 
 ---------- rate function ------------
 
