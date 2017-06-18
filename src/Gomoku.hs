@@ -1,23 +1,22 @@
 
 -------------------------------------
 
-module Board where
+module Gomoku where
 
 import Data.Maybe
 import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
 import qualified Data.List as List
+import Control.Parallel.Strategies
 
------------- globals ----------------
-
-myBoard = Board Map.empty
+---------------- globals ------------------
 
 nums = [1,2..9]
 chars = ['A'..'S']
 currCol = White
 directions = [NorthEast, North, NorthWest, West, SouthWest, South, SouthEast, East]
 
--------------------------------------
+-------------------------------------------
 
 data Color = Black | White
   deriving Eq
@@ -40,17 +39,17 @@ changeColor col
 -- Compares colors when one is maybe a color (used in rate block)
 compareColors :: Maybe Color -> Color -> Bool
 compareColors c1 c2
-  |Data.Maybe.isJust c1 = getBare c1 == c2
+  |Data.Maybe.isJust c1 = unJust c1 == c2
   |otherwise = False
 
--------------------------------------
+-------------------------------------------
 
 data Direction =
   NorthEast | North | NorthWest | West |
   SouthWest | South | SouthEast | East
     deriving Show
 
--------------------------------------
+-------------------------------------------
 
 data Position = Position Int Int
 
@@ -112,17 +111,17 @@ getPointNeighbors pos board = neighbors
     unchecked = [getNeighbor pos dir | dir <- directions]
     neighbors = [n | n <- unchecked, checkPos n board]
 
--------------------------------------
+-------------------------------------------
 
 data Game = Game Board Color
 
 instance Show Game where
-  show (Game board col) = showBoard board ++ playerLabel col
+  show (Game board col) = showBoard board ++ playerLabel col board
 
 instance Eq Game where
   Game b1 c1 == Game b2 c2 = (b1 == b2) && (c1 == c2)
 
--------------------------------------
+-------------------------------------------
 
 newtype Board = Board(Map.Map Position Color)
 
@@ -132,7 +131,7 @@ instance Show Board where
 instance Eq Board where
   Board m1 == Board m2 = m1 == m2
 
--------------------------------------
+-------------------------------------------
 
 addToBoard :: Position -> Color -> Board -> Board
 addToBoard pos col board@(Board prevMap)
@@ -143,14 +142,14 @@ addToBoard pos col board@(Board prevMap)
 getPosColor :: Position -> Board -> Maybe Color
 getPosColor pos (Board boardMap) = Map.lookup pos boardMap
 
----------- showing board ------------
+------------- showing board ---------------
 
 showBoard :: Board -> String
 showBoard board = "\n" ++ upDownLabel ++ getAllStringRows board ++ upDownLabel
 
 showDisc :: Board -> Position -> String
 showDisc (Board boardMap) pos
-  |Map.member pos boardMap      = show (getBare(Map.lookup pos boardMap)) ++ " "
+  |Map.member pos boardMap      = show (unJust(Map.lookup pos boardMap)) ++ " "
   |otherwise                    = "- "
 
 getStringRow :: Board -> Int -> String
@@ -166,16 +165,16 @@ getAllStringRows board = concat [packRow board row ++ "\n" | row <- nums]
 upDownLabel :: String
 upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- take (last nums) chars] ++ "\n"
 
------------ player label ------------
+-------------- player label ---------------
 
-playerLabel :: Color -> String
-playerLabel col = "\nPlayer: " ++ show col ++ "\n"
+playerLabel :: Color -> Board -> String
+playerLabel col board = "\nPlayer: " ++ show col ++ " rate: " ++ "\n"
 
------------- next moves -------------
+--------------- next moves ----------------
 
 checkPosRange :: Position -> Bool
 checkPosRange (Position x y)
-  | x > 0 && x < 20 && y > 0 && y < 20  = True
+  | x > 0 && x < (last nums + 1) && y > 0 && y < (last nums + 1)  = True
   | otherwise                           = False
 
 checkPosAvailable :: Position -> Board -> Bool
@@ -211,7 +210,7 @@ nextGames :: Game -> Position -> [Position] -> [Game]
 nextGames game@(Game board col) pos posList =
   [Game (addToBoard p col board) col | p <- nextMoves game pos posList]
 
----------- rate function ------------
+-------------- rate function --------------
 
 -- Rates board after each move
 rate :: Game -> Int
@@ -264,15 +263,32 @@ getCurrColPosList :: Game -> [Position]
 getCurrColPosList (Game board col) =
   [pos | pos <- getKeys board, compareColors (getPosColor pos board) col]
 
-------------- game tree -------------
+---------------- game tree ----------------
 
 infTree = Tree.Node 1 [infTree] -- drzewo nieskonczone
 
-------------- make move -------------
+---------------- make move ----------------
 
 makeMove = undefined
 
------------ player input ------------
+----------------- victory -----------------
+
+victory :: Game -> Bool
+victory game = any (fiveInAllDirs posList) posList
+  where
+    posList = getCurrColPosList game
+
+fiveInAllDirs :: [Position] -> Position -> Bool
+fiveInAllDirs posList pos = any (fiveInADir pos posList 1) directions
+
+-- Checks if there is a five-in-a-row sequence of positions in a specified dir
+fiveInADir :: Position -> [Position] -> Int -> Direction -> Bool
+fiveInADir pos posList num dir
+  | pos `elem` posList && num == 5 = True
+  | pos `elem` posList = True && fiveInADir (getNeighbor pos dir) posList  (num + 1) dir
+  | otherwise = False
+
+-------------- player input ---------------
 
 askPlayer :: Game -> IO ()
 askPlayer (Game board col) =
@@ -288,15 +304,15 @@ parseToPosition :: String -> String -> Position
 parseToPosition x y =
   Position (read x) (read y)
 
-------------- helpful ---------------
+---------------- helpful ------------------
 
-getBare :: Maybe t -> t
-getBare (Just x) = x
+unJust :: Maybe t -> t
+unJust (Just x) = x
 
 charToString :: Char -> String
 charToString c = [c]
 
--------------- main -----------------
+----------------- main --------------------
 
 main = do
   putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
