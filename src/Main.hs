@@ -19,6 +19,7 @@ import Game
 
 ---------------- player input -----------------
 
+-- Deprecated
 askPlayer :: Game -> IO ()
 askPlayer (Game board col) =
   do
@@ -46,7 +47,7 @@ parse ::[String] -> Position
 parse [row, col]
   | (x > 0) && (x < size + 1) && ((y - 64) > 0) && ((y - 64) < size + 1) = Position x (y - 64)
   | (x > 0) && (x < size + 1) && ((y - 96) > 0) && ((y-96) < size + 1) = Position x (y - 96)
-  | otherwise = Position 9 9
+  | otherwise = Position 0 0
     where
       size = last nums
       x = toInt row
@@ -56,7 +57,7 @@ toInt :: String -> Int
 toInt = read
 
 strToChar :: String -> Char
-strToChar [letter] = letter
+strToChar [ch] = ch
 strToChar string = 'Z'
 
 ------------------- main ----------------------
@@ -64,8 +65,9 @@ strToChar string = 'Z'
 gameLoop :: Game -> IO ()
 gameLoop (Game board col) =
     if victory (Game board opCol)
-        then
-            putStrLn "Player2 won (computer)"
+      then do
+          print (Game board opCol)
+          putStrLn ("Player" ++ show opCol ++ " won!")
         else do
             print (Game board col)
             putStrLn "Choose Position (e.g. 6 B): "
@@ -74,25 +76,7 @@ gameLoop (Game board col) =
             if checkPos parsedPos board
                 then do
                     let newBoard = addToBoard parsedPos col board
-                    if victory (Game newBoard col)
-                        then do
-                          print (Game newBoard col)
-                          putStrLn "Player1 won"
-                        else do
-                          print (Game newBoard opCol)
-                          putStrLn "Choose Position (e.g. 4 F): "
-                          pos2 <- getLine
-                          let parsedPos2 = parsePosition pos2
-                          if checkPos parsedPos2 newBoard
-                              then do
-                                  let newBoard2 = addToBoard parsedPos opCol newBoard
-                                  gameLoop (Game newBoard2 opCol)
-                                  --let boardAfterMinmax = boardFromMinmax newBoard Black
-                                  --gameLoop boardAfterMinmax
-                          else do
-                              putStrLn "Position not available"
-                              gameLoop (Game newBoard col)
-                              putStr ""
+                    gameLoop (Game newBoard opCol)
                 else do
                     putStrLn "Position not available"
                     gameLoop (Game board col)
