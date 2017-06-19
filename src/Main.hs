@@ -7,8 +7,8 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
 import qualified Data.List as List
 import Control.Parallel.Strategies
-import Control.Monad( when )
-import Numeric ( showHex, showIntAtBase )
+import Control.Monad
+import Numeric
 import Data.Char
 import Text.Read
 
@@ -30,6 +30,7 @@ askPlayer (Game board col) =
     let col2 = changeColor col
     askPlayer (Game (addToBoard (parseToPosition x y) col board) col2)
 
+-- Deprecated
 parseToPosition :: String -> String -> Position
 parseToPosition x y =
   Position (read x) (read y)
@@ -37,16 +38,16 @@ parseToPosition x y =
 ------------------- parse ---------------------
 
 parsePosition :: String -> Position
-parsePosition stringWithPosition
+parsePosition stringPosition
     | length splittedString == 2 = parse splittedString
     | otherwise = Position 0 0
     where
-        splittedString = words stringWithPosition
+        splittedString = words stringPosition
 
 parse ::[String] -> Position
 parse [row, col]
   | (x > 0) && (x < size + 1) && ((y - 64) > 0) && ((y - 64) < size + 1) = Position x (y - 64)
-  | (x > 0) && (x < size + 1) && ((y - 96) > 0) && ((y-96) < size + 1) = Position x (y - 96)
+  | (x > 0) && (x < size + 1) && ((y - 96) > 0) && ((y - 96) < size + 1) = Position x (y - 96)
   | otherwise = Position 0 0
     where
       size = last nums
@@ -60,32 +61,71 @@ strToChar :: String -> Char
 strToChar [ch] = ch
 strToChar string = 'Z'
 
-------------------- main ----------------------
+-------------- player vs player ---------------
 
-gameLoop :: Game -> IO ()
-gameLoop (Game board col) =
-    if victory (Game board opCol)
-      then do
-          print (Game board opCol)
-          putStrLn ("Player" ++ show opCol ++ " won!")
+playerVSplayer :: Game -> IO ()
+playerVSplayer (Game board col) =
+  if victory (Game board opCol)
+    then do
+      print (Game board opCol)
+      putStrLn ("Player" ++ show opCol ++ " won!")
+    else do
+      print (Game board col)
+      putStrLn "Choose Position (e.g. 6 B): "
+      pos <- getLine
+      let parsedPos = parsePosition pos
+      if checkPos parsedPos board
+        then do
+          let newBoard = addToBoard parsedPos col board
+          playerVSplayer (Game newBoard opCol)
         else do
-            print (Game board col)
-            putStrLn "Choose Position (e.g. 6 B): "
-            pos <- getLine
-            let parsedPos = parsePosition pos
-            if checkPos parsedPos board
-                then do
-                    let newBoard = addToBoard parsedPos col board
-                    gameLoop (Game newBoard opCol)
-                else do
-                    putStrLn "Position not available"
-                    gameLoop (Game board col)
-                    putStr ""
+          putStrLn "Position not available"
+          playerVSplayer (Game board col)
+          putStr ""
   where
     opCol = changeColor col
 
+------------- computer vs player --------------
+
+computerVSplayer:: Game -> [Position] -> IO ()
+computerVSplayer (Game board col) neighborsList =
+  if victory (Game board opCol)
+    then do
+      print (Game board opCol)
+      putStrLn ("Computer " ++ show opCol ++ " won!")
+    else do
+      print (Game board col)
+      putStrLn "Choose Position (e.g. 8 A): "
+      pos <- getLine
+      let parsedPos = parsePosition pos
+      if checkPos parsedPos board
+        then do
+          let newBoard = addToBoard parsedPos col board
+          let newGame = Game newBoard col
+          print newGame
+          let updatedNeighborsList = nextMoves newGame parsedPos neighborsList
+          if victory newGame
+            then do
+              print (Game newBoard col)
+              putStrLn ("Player " ++ show col ++ " won!")
+            else do
+              putStrLn ""
+              let boardAndList = getMaxMinBoard (Game newBoard opCol) parsedPos updatedNeighborsList
+              computerVSplayer (Game (fst boardAndList) opCol) (snd boardAndList)
+              putStrLn ""
+      else do
+        putStrLn "Position not available"
+        computerVSplayer (Game board col) neighborsList
+        putStr ""
+  where
+    opCol = changeColor col
+
+------------------- main ----------------------
+
 main :: IO ()
 main = do
+  putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
   let emptyBoard = Board Map.empty
-  gameLoop (Game emptyBoard White)
+  --playerVSplayer (Game emptyBoard White)
+  computerVSplayer (Game emptyBoard White) []
   putStr ""
