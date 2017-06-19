@@ -9,6 +9,13 @@ data Direction =
   SouthWest | South | SouthEast | East
     deriving Show
 
+opposite :: Direction -> Direction
+opposite dir = case dir of
+  West -> East
+  SouthWest -> NorthEast
+  South -> North
+  SouthEast -> NorthWest
+
 directions = [NorthEast, North, NorthWest, West, SouthWest, South, SouthEast, East]
 
 -------------------------------------------
