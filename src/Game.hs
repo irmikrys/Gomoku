@@ -32,33 +32,6 @@ instance Eq Game where
 playerLabel :: Color -> Board -> String
 playerLabel col board = "\nPlayer: " ++ show col ++ " rate: " ++ "\n"
 
------------------ next moves ------------------
-
--- Not effective
-getAllFreePos :: Board -> [Position]
-getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
-
--- Not effective
-nextPossibleMoves :: Game -> [Game]
-nextPossibleMoves (Game board@(Board boardMap) color) =
-  [Game (addToBoard pos color board) color | pos <- getAllFreePos board]
-
--- Position of last added point, list of already added to check positions,
--- actual game state, returns new list with neighbors added
--- New neighbors don't include elems already in posList, current pos and
--- occupied positions (already defined in getPointNeighbors)
-nextMoves :: Game -> Position -> [Position] -> [Position]
-nextMoves (Game board col) pos posList  =
-  newPosList where
-    updatedPosList = List.delete pos posList
-    neighbors = checkPointNeighbors pos board
-    newPosList = updatedPosList ++ [p | p <- neighbors, p `notElem` updatedPosList, p /= pos]
-
--- Generates next possible moves
-nextGames :: Game -> Position -> [Position] -> [Game]
-nextGames game@(Game board col) pos posList =
-  [Game (addToBoard p col board) col | p <- nextMoves game pos posList]
-
 ---------------- rate function ----------------
 
 -- Rates board after each move
@@ -155,25 +128,71 @@ getCurrColPosList :: Game -> [Position]
 getCurrColPosList (Game board col) =
   [pos | pos <- getKeys board, compareColors (getPosColor pos board) col]
 
+----------------- next moves ------------------
+
+-- Not effective
+getAllFreePos :: Board -> [Position]
+getAllFreePos board = [Position i j | i <- nums, j <- nums, checkPos (Position i j) board]
+
+-- Not effective
+nextPossibleMoves :: Game -> [Game]
+nextPossibleMoves (Game board@(Board boardMap) color) =
+  [Game (addToBoard pos color board) color | pos <- getAllFreePos board]
+
+-- Position of last added point, list of already added to check positions,
+-- actual game state, returns new list with neighbors added
+-- New neighbors don't include elems already in posList, current pos and
+-- occupied positions (already defined in getPointNeighbors)
+nextMoves :: Game -> Position -> [Position] -> [Position]
+nextMoves (Game board col) pos posList  =
+  newPosList where
+    updatedPosList = List.delete pos posList
+    neighbors = checkPointNeighbors pos board
+    newPosList = updatedPosList ++ [p | p <- neighbors, p `notElem` updatedPosList, p /= pos]
+
+-- Generates next possible moves
+nextGames :: Game -> Position -> [Position] -> [Game]
+nextGames game@(Game board col) pos posList =
+  [Game (addToBoard p col board) col | p <- nextMoves game pos posList]
+
 ------------------ game tree ------------------
 
 infTree = Node 1 [infTree] -- drzewo nieskonczone
 
-gameToTree:: Game -> [Position] -> Tree Game
+gameToTree :: Game -> [Position] -> Tree Game
 gameToTree (Game board col) neighbors = Node (Game board col) (children neighbors)
     where
-        newNeighbors pos = addNotMember (List.delete pos neighbors) $ checkPointNeighbors pos board
+        newNeighbors pos = addNotElem (List.delete pos neighbors) (checkPointNeighbors pos board)
         children = foldr (\ pos -> (++) [gameToTree (Game (addToBoard pos col board) (changeColor col)) (newNeighbors pos)]) []
 
-addNotMember:: [Position] -> [Position] -> [Position]
-addNotMember list [] = list
-addNotMember list (x:xs)
-    | x `elem` list = [] ++ addNotMember xs list
-    | otherwise = x : addNotMember xs list
+addNotElem :: [Position] -> [Position] -> [Position]
+addNotElem list1 list2 = [x | x <- list1, x `notElem` list2] ++ list2
 
------------------- make move ------------------
+-------------------- maxmin -------------------
 
-makeMove = undefined
+-- Gets starting level, depth of tree, color and tree to evaluate
+maxmin :: Int -> Int -> Color -> Tree Game -> Int
+maxmin k maxK color (Node game list)
+  | null list = rateGame game
+  | k > maxK && k `mod` 2 == 0 = index
+  | k > maxK  && k `mod` 2 /= 0 = indexMin
+  | k `mod` 2 == 0 = maximum (map (maxmin (k+1) maxK color) list)
+  | otherwise = minimum (map (maxmin (k+1) maxK color) list)
+  where
+    listM = exploreForest list
+    index = unJust (List.elemIndex (maximum listM) listM)
+    indexMin = unJust (List.elemIndex (minimum listM) listM)
+
+-- Rates each game in the list
+exploreForest :: [Tree Game] -> [Int]
+exploreForest [] = []
+exploreForest (Node game _ : rest) = rateGame game : exploreForest rest
+
+getMaxMinBoard :: Game -> Position -> [Position] -> Board
+getMaxMinBoard game@(Game board col) pos addedPosNeighbors = boardMM
+  where
+    Node g list = gameToTree game (nextMoves game pos addedPosNeighbors)
+    Node (Game boardMM _) _ = list !! maxmin 0 2 col (Node g list)
 
 ------------------- victory -------------------
 
