@@ -9,8 +9,8 @@ import Position
 
 -----------------------------------------------
 
-nums = [1,2..9]
-chars = ['A'..'S']
+nums = [1,2..11]
+chars = ['A'..'Z']
 
 -----------------------------------------------
 
@@ -50,15 +50,24 @@ showDisc (Board boardMap) pos
 getStringRow :: Board -> Int -> String
 getStringRow board row = concat [showDisc board (Position row col) | col <- nums]
 
-packRow :: Board -> Int -> String
-packRow board row = charToString (chars !! (row - 1)) ++ " "
-  ++ getStringRow board row ++ charToString(chars !! (row - 1))
+packRowChars :: Board -> Int -> String
+packRowChars board row = charToStr (chars !! (row - 1)) ++ " "
+  ++ getStringRow board row ++ charToStr(chars !! (row - 1))
+
+packRowNums :: Board -> Int -> String
+packRowNums board row = leftSideLabelPack (nums !! (row - 1)) ++ " "
+  ++ getStringRow board row ++ show (nums !! (row - 1))
 
 getAllStringRows :: Board -> String
-getAllStringRows board = concat [packRow board row ++ "\n" | row <- nums]
+getAllStringRows board = concat [packRowNums board row ++ "\n" | row <- nums]
+
+leftSideLabelPack :: Int -> String
+leftSideLabelPack num
+  | (num > 0) && (num < 10) = " " ++ show num
+  | otherwise = show num
 
 upDownLabel :: String
-upDownLabel = "  " ++ concat [charToString c  ++ " " | c <- take (last nums) chars] ++ "\n"
+upDownLabel = "   " ++ concat [charToStr c  ++ " " | c <- take (last nums) chars] ++ "\n"
 
 ---------- check position within board --------
 
@@ -84,5 +93,5 @@ checkPointNeighbors unchecked board = [n | n <- unchecked, checkPos n board]
 
 ---------------- helpful ------------------
 
-charToString :: Char -> String
-charToString c = [c]
+charToStr :: Char -> String
+charToStr c = [c]
