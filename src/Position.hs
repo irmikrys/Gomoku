@@ -36,29 +36,29 @@ instance Ord Position where
     | (x1 == x2 ) && (y1 < y2)  = LT
     | x1 < x2                   = LT
 
-northEast :: Position -> Position
-northEast (Position row col) = Position (row - 1) (col - 1)
+northWest :: Position -> Position
+northWest (Position row col) = Position (row - 1) (col - 1)
 
 north :: Position -> Position
 north (Position row col) = Position (row - 1) col
 
-northWest :: Position -> Position
-northWest (Position row col) = Position (row - 1) (col + 1)
+northEast :: Position -> Position
+northEast (Position row col) = Position (row - 1) (col + 1)
 
-west :: Position -> Position
-west (Position row col) = Position row (col + 1)
+east :: Position -> Position
+east (Position row col) = Position row (col + 1)
 
-southWest :: Position -> Position
-southWest (Position row col) = Position (row + 1) (col + 1)
+southEast :: Position -> Position
+southEast (Position row col) = Position (row + 1) (col + 1)
 
 south :: Position -> Position
 south (Position row col) = Position (row + 1) col
 
-southEast :: Position -> Position
-southEast (Position row col) = Position (row + 1) (col - 1)
+southWest :: Position -> Position
+southWest (Position row col) = Position (row + 1) (col - 1)
 
-east :: Position -> Position
-east (Position row col) = Position row (col - 1)
+west :: Position -> Position
+west (Position row col) = Position row (col - 1)
 
 -- Get point neighbor by direction
 getNeighbor :: Position -> Direction -> Position
