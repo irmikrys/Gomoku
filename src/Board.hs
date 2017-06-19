@@ -88,8 +88,8 @@ checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 
 -- Checks if neighbor isn't out of board or occupied,
 -- unchecked might be obtained by using getPointNeighbors from "Position.hs"
-checkPointNeighbors :: [Position] -> Board -> [Position]
-checkPointNeighbors unchecked board = [n | n <- unchecked, checkPos n board]
+checkPointNeighbors :: Position -> Board -> [Position]
+checkPointNeighbors pos board = [n | n <- getPointNeighbors pos, checkPos n board]
 
 ---------------- helpful ------------------
 

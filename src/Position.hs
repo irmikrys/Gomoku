@@ -11,7 +11,7 @@ data Direction =
 
 opposite :: Direction -> Direction
 opposite dir = case dir of
-  West -> East
+  East -> West
   SouthWest -> NorthEast
   South -> North
   SouthEast -> NorthWest
