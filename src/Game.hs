@@ -64,29 +64,38 @@ nextGames game@(Game board col) pos posList =
 
 -- Rates board after each move
 -- Sums scores of sequences in each direction
-rate :: Game -> Int
-rate game@(Game board col) = result
+rateGame :: Game -> Int
+rateGame game@(Game board col) =
+  rateAllDirs game colPosList - rateAllDirs opGame opColPosList
   where
-    colList = getCurrColPosList game -- tu wszystkie pozycje bieżącego koloru
+    colPosList = getCurrColPosList game -- tu wszystkie pozycje bieżącego koloru
+    opGame = Game board (changeColor col)
+    opColPosList = getCurrColPosList opGame -- pozycje przeciwnego koloru
 
-    result = 1
+-- Returns the sum of all directions rates
+rateAllDirs :: Game -> [Position] -> Int
+rateAllDirs _ [] = 0
+rateAllDirs game colPosList =
+  sum (parMap r0 (rateDir game colPosList) rateDirections)
 
-rateDir :: Game -> Direction -> [Position] -> Int
-rateDir game dir colList = undefined
-
------------------
-
-rateDirection:: Position -> [Position] -> Int -> Direction -> [Int]
-rateDirection _ [] num dir = [num]
-rateDirection pos (pos2 : rest) num dir
-    | pos `elem` (pos2 : rest) = rateDirection (getNeighbor pos dir) (List.delete pos (pos2 : rest)) (num+1) dir
-    | otherwise = num : rateDirection (getNeighbor pos dir) rest 1 dir
-
------------------
+rateDir :: Game -> [Position] -> Direction -> Int
+rateDir _ [] _ = 0
+rateDir game (currPos:restPos) dir = undefined
 
 -- Returns a list of positions creating a sequence to rate
-findSeqInDirection :: Game -> Direction -> [Position] -> [Position]
-findSeqInDirection (Game board col) dir colList = undefined
+findSeqInDirection :: Direction -> [Position] -> [[Position]]
+findSeqInDirection dir colList = sequencesList
+  where
+    sequencesList = []
+
+-- Checks if the sequence is both side opened or one side or not at all
+evaluateSequence :: Game -> Direction -> [Position] -> Float
+evaluateSequence game dir posList
+  | check == 2 = fromIntegral (length posList) + 0.5
+  | check == 1 = fromIntegral (length posList)
+  | otherwise = 0
+  where
+    check = checkEnds game dir posList
 
 -- Sums checks of both ends of positions sequence
 checkEnds :: Game -> Direction -> [Position] -> Int
@@ -103,7 +112,6 @@ checkEnd :: Game -> Direction -> Position -> Int
 checkEnd (Game board col) dir pos
   | checkPos (getNeighbor pos dir) board  = 1
   | otherwise                             = 0
-
 
 -- Rates how much is worth each of the following:
 -- one with one side open
@@ -129,6 +137,16 @@ value counter = case counter of
   5 -> 1000
   _ -> 0
 
+-- Gets list of rates for each sequence and returns sum of evaluated rates
+evaluateValues :: [Float] -> Int
+evaluateValues [] = 0
+evaluateValues listOfValues = sum (map value listOfValues)
+
+-- Returns sum of evaluated rates for all directions
+sumDirections :: [[Float]] -> Int
+sumDirections list = sum (map evaluateValues list)
+
+-- Returns list of positions occupied by current color
 getCurrColPosList :: Game -> [Position]
 getCurrColPosList (Game board col) =
   [pos | pos <- getKeys board, compareColors (getPosColor pos board) col]
