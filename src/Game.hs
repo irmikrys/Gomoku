@@ -14,6 +14,11 @@ import Board
 
 -----------------------------------------------
 
+rateDirections = [West, SouthWest, South, SouthEast]
+numToWin = 3 -- you can change number of discs in-a-row needed to win (2-5)
+
+-----------------------------------------------
+
 data Game = Game Board Color
 
 instance Show Game where
@@ -58,24 +63,47 @@ nextGames game@(Game board col) pos posList =
 ---------------- rate function ----------------
 
 -- Rates board after each move
+-- Sums scores of sequences in each direction
 rate :: Game -> Int
-rate (Game board col) = undefined
+rate game@(Game board col) = result
+  where
+    colList = getCurrColPosList game -- tu wszystkie pozycje bieżącego koloru
 
--- Rates vertically (North to South direction)
-rateNS :: Game -> Int
-rateNS(Game board col) = undefined
+    result = 1
 
--- Rates horizontally (West to East direction)
-rateWE :: Game -> Int
-rateWE (Game board col) = undefined
+rateDir :: Game -> Direction -> [Position] -> Int
+rateDir game dir colList = undefined
 
--- Rates diagonally (NorthWest to SouthEast direction)
-rateNWSE :: Game -> Int
-rateNWSE (Game board col) = undefined
+-----------------
 
--- Rates diagonally (NorthEast to SouthWest direction)
-rateNESW :: Game -> Int
-rateNESW (Game board col) = undefined
+rateDirection:: Position -> [Position] -> Int -> Direction -> [Int]
+rateDirection _ [] num dir = [num]
+rateDirection pos (pos2 : rest) num dir
+    | pos `elem` (pos2 : rest) = rateDirection (getNeighbor pos dir) (List.delete pos (pos2 : rest)) (num+1) dir
+    | otherwise = num : rateDirection (getNeighbor pos dir) rest 1 dir
+
+-----------------
+
+-- Returns a list of positions creating a sequence to rate
+findSeqInDirection :: Game -> Direction -> [Position] -> [Position]
+findSeqInDirection (Game board col) dir colList = undefined
+
+-- Sums checks of both ends of positions sequence
+checkEnds :: Game -> Direction -> [Position] -> Int
+checkEnds game@(Game board col) dir positions = result
+  where
+    firstEnd = checkEnd game (opposite dir) (head positions)
+    secondEnd = checkEnd game dir (last positions)
+    result = firstEnd + secondEnd
+
+-- Check one end of sequence in direction from position
+-- Returns 0 when end is occupied (by another color)
+-- Returns 1 when end is free
+checkEnd :: Game -> Direction -> Position -> Int
+checkEnd (Game board col) dir pos
+  | checkPos (getNeighbor pos dir) board  = 1
+  | otherwise                             = 0
+
 
 -- Rates how much is worth each of the following:
 -- one with one side open
@@ -92,13 +120,13 @@ value :: Float -> Int
 value counter = case counter of
   1 -> 1
   1.5 -> 2
-  2 -> 5
-  2.5 -> 10
-  3 -> 20
-  3.5 -> 35
-  4 -> 60
-  4.5 -> 150
-  5 -> 500
+  2 -> 10
+  2.5 -> 15
+  3 -> 40
+  3.5 -> 50
+  4 -> 120
+  4.5 -> 200
+  5 -> 1000
   _ -> 0
 
 getCurrColPosList :: Game -> [Position]
@@ -116,25 +144,25 @@ makeMove = undefined
 ------------------- victory -------------------
 
 victory :: Game -> Bool
-victory game = any (fiveInAllDirs posList) posList
+victory game = any (numToWinInAllDirs posList) posList
   where
     posList = getCurrColPosList game
 
-fiveInAllDirs :: [Position] -> Position -> Bool
-fiveInAllDirs posList pos = any (fiveInADir pos posList 1) Position.directions
+numToWinInAllDirs :: [Position] -> Position -> Bool
+numToWinInAllDirs posList pos = any (numToWinInADir pos posList 1) Position.directions
 
 -- Checks if there is a five-in-a-row sequence of positions in a specified dir
-fiveInADir :: Position -> [Position] -> Int -> Direction -> Bool
-fiveInADir pos posList num dir
-  | pos `elem` posList && num == 5 = True
-  | pos `elem` posList = True && fiveInADir (getNeighbor pos dir) posList  (num + 1) dir
+numToWinInADir :: Position -> [Position] -> Int -> Direction -> Bool
+numToWinInADir pos posList num dir
+  | pos `elem` posList && num == numToWin = True
+  | pos `elem` posList = True && numToWinInADir (getNeighbor pos dir) posList  (num + 1) dir
   | otherwise = False
 
 ------------------- main tester ----------------------
 
 
-main :: IO ()
-main = do
+defMain :: IO ()
+defMain = do
   putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
   let scopeBoard = Board Map.empty
   let col = White
