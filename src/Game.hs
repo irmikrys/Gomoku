@@ -159,6 +159,18 @@ getCurrColPosList (Game board col) =
 
 infTree = Tree.Node 1 [infTree] -- drzewo nieskonczone
 
+gameToTree:: Game -> [Position] -> Tree.Tree Game
+gameToTree (Game board col) neighbors = Tree.Node (Game board col) (children neighbors)
+    where
+        newNeighbors coords = addNotMember (List.delete coords neighbors) $ checkPointNeighbors coords board
+        children = foldr (\ x -> (++) [gameToTree (Game (addToBoard x col board) (changeColor col)) (newNeighbors x)]) []
+
+addNotMember:: [Position] -> [Position] -> [Position]
+addNotMember list [] = list
+addNotMember list (x:xs)
+    | x `elem` list = [] ++ addNotMember xs list
+    | otherwise = x : addNotMember xs list
+
 ------------------ make move ------------------
 
 makeMove = undefined
