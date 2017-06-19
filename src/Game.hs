@@ -14,7 +14,7 @@ import Board
 
 -----------------------------------------------
 
-rateDirections = [West, SouthWest, South, SouthEast]
+rateDirections = [East, SouthEast, South, SouthWest] -- directions going down the board - map is sorted in the descending order
 numToWin = 3 -- you can change number of discs in-a-row needed to win (2-5)
 
 -----------------------------------------------
@@ -51,8 +51,7 @@ nextMoves :: Game -> Position -> [Position] -> [Position]
 nextMoves (Game board col) pos posList  =
   newPosList where
     updatedPosList = List.delete pos posList
-    neighborsUnchecked = getPointNeighbors pos
-    neighbors = checkPointNeighbors neighborsUnchecked board
+    neighbors = checkPointNeighbors pos board
     newPosList = updatedPosList ++ [p | p <- neighbors, p `notElem` updatedPosList, p /= pos]
 
 -- Generates next possible moves
@@ -74,19 +73,28 @@ rateGame game@(Game board col) =
 
 -- Returns the sum of all directions rates
 rateAllDirs :: Game -> [Position] -> Int
-rateAllDirs _ [] = 0
 rateAllDirs game colPosList =
   sum (parMap r0 (rateDir game colPosList) rateDirections)
 
 rateDir :: Game -> [Position] -> Direction -> Int
-rateDir _ [] _ = 0
-rateDir game (currPos:restPos) dir = undefined
-
--- Returns a list of positions creating a sequence to rate
-findSeqInDirection :: Direction -> [Position] -> [[Position]]
-findSeqInDirection dir colList = sequencesList
+rateDir game colPosList dir = valuesEvaluated
   where
-    sequencesList = []
+    allSequences = findSeqsInDir (head colPosList) colPosList [] dir -- find sequences in the direction
+    seqEvaluated = evaluateAllSeq game dir allSequences -- count how much worth is every sequence
+    valuesEvaluated = evaluateValues seqEvaluated -- rate every sequence length and add
+
+-- Returns a list of sequences (positions create a sequence to rate)
+-- Gets starting position, all positions of color
+-- and direction in which to seek sequences
+findSeqsInDir :: Position -> [Position] -> [Position] -> Direction -> [[Position]]
+findSeqsInDir _ [] tmp _ = [tmp]
+findSeqsInDir pos colorList tmpList dir
+  | pos `elem` colorList = findSeqsInDir (getNeighbor pos dir) (List.delete pos colorList) (tmpList ++ [pos]) dir
+  | otherwise = tmpList : findSeqsInDir (head colorList) colorList [] dir
+
+-- Applies evaluation function for sequences
+evaluateAllSeq :: Game -> Direction -> [[Position]] -> [Float]
+evaluateAllSeq game dir = map (evaluateSequence game dir)
 
 -- Checks if the sequence is both side opened or one side or not at all
 evaluateSequence :: Game -> Direction -> [Position] -> Float
@@ -113,6 +121,11 @@ checkEnd (Game board col) dir pos
   | checkPos (getNeighbor pos dir) board  = 1
   | otherwise                             = 0
 
+-- Gets list of rates for each sequence and returns sum of evaluated rates
+evaluateValues :: [Float] -> Int
+evaluateValues [] = 0
+evaluateValues listOfValues = sum (map value listOfValues)
+
 -- Rates how much is worth each of the following:
 -- one with one side open
 -- one with both sides open
@@ -136,15 +149,6 @@ value counter = case counter of
   4.5 -> 200
   5 -> 1000
   _ -> 0
-
--- Gets list of rates for each sequence and returns sum of evaluated rates
-evaluateValues :: [Float] -> Int
-evaluateValues [] = 0
-evaluateValues listOfValues = sum (map value listOfValues)
-
--- Returns sum of evaluated rates for all directions
-sumDirections :: [[Float]] -> Int
-sumDirections list = sum (map evaluateValues list)
 
 -- Returns list of positions occupied by current color
 getCurrColPosList :: Game -> [Position]
@@ -178,6 +182,19 @@ numToWinInADir pos posList num dir
 
 ------------------- main tester ----------------------
 
+testSeq = do
+  let empty = Board Map.empty
+  let board = addToBoard (Position 2 2) White (addToBoard (Position 4 4) White (addToBoard (Position 4 7) White (addToBoard (Position 6 7) White empty)))
+  let board2 = addToBoard (Position 2 5) White (addToBoard (Position 3 3) White (addToBoard (Position 6 7) White (addToBoard (Position 5 7) White board)))
+  let board3 = addToBoard (Position 6 2) White (addToBoard (Position 2 6) White (addToBoard (Position 7 7) Black (addToBoard (Position 3 7) Black board2)))
+  let game = Game board3 White
+  print game
+  let list = getCurrColPosList game
+  --let seqs = findSeqsInDir (head list) list [] North
+  --show seqs
+  --let rated = rateDir game list South
+  let rated = rateAllDirs game list
+  print rated
 
 defMain :: IO ()
 defMain = do
