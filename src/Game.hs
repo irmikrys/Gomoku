@@ -4,7 +4,7 @@ module Game where
 
 import Data.Maybe
 import qualified Data.Map.Strict as Map
-import qualified Data.Tree as Tree
+import Data.Tree
 import qualified Data.List as List
 import Control.Parallel.Strategies
 
@@ -157,13 +157,13 @@ getCurrColPosList (Game board col) =
 
 ------------------ game tree ------------------
 
-infTree = Tree.Node 1 [infTree] -- drzewo nieskonczone
+infTree = Node 1 [infTree] -- drzewo nieskonczone
 
-gameToTree:: Game -> [Position] -> Tree.Tree Game
-gameToTree (Game board col) neighbors = Tree.Node (Game board col) (children neighbors)
+gameToTree:: Game -> [Position] -> Tree Game
+gameToTree (Game board col) neighbors = Node (Game board col) (children neighbors)
     where
-        newNeighbors coords = addNotMember (List.delete coords neighbors) $ checkPointNeighbors coords board
-        children = foldr (\ x -> (++) [gameToTree (Game (addToBoard x col board) (changeColor col)) (newNeighbors x)]) []
+        newNeighbors pos = addNotMember (List.delete pos neighbors) $ checkPointNeighbors pos board
+        children = foldr (\ pos -> (++) [gameToTree (Game (addToBoard pos col board) (changeColor col)) (newNeighbors pos)]) []
 
 addNotMember:: [Position] -> [Position] -> [Position]
 addNotMember list [] = list
