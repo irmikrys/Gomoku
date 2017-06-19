@@ -60,7 +60,6 @@ southWest (Position row col) = Position (row + 1) (col - 1)
 west :: Position -> Position
 west (Position row col) = Position row (col - 1)
 
--- Get point neighbor by direction
 getNeighbor :: Position -> Direction -> Position
 getNeighbor pos dir = case dir of
   NorthEast -> northEast pos
@@ -72,6 +71,5 @@ getNeighbor pos dir = case dir of
   SouthEast -> southEast pos
   East      -> east pos
 
--- Get all neighbors (in each direction from position)
 getPointNeighbors :: Position  -> [Position]
 getPointNeighbors pos = [getNeighbor pos dir | dir <- directions]

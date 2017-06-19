@@ -109,14 +109,27 @@ computerVSplayer (Game board col) neighborsList =
               print (Game newBoard col)
               putStrLn ("Player " ++ show col ++ " won!")
             else do
-              putStrLn ""
               let boardAndList = getMaxMinBoard (Game newBoard opCol) parsedPos updatedNeighborsList
-              computerVSplayer (Game (fst boardAndList) opCol) (snd boardAndList)
-              putStrLn ""
+              computerVSplayer (Game (fst boardAndList) col) (snd boardAndList)
       else do
         putStrLn "Position not available"
         computerVSplayer (Game board col) neighborsList
         putStr ""
+  where
+    opCol = changeColor col
+
+------------ computer vs computer -------------
+
+botVSbot :: Game -> [Position] -> IO ()
+botVSbot (Game board col) positions =
+  if victory (Game board opCol)
+    then do
+      print (Game board opCol)
+      putStrLn ("Player" ++ show opCol ++ " won!")
+    else do
+      let boardAndList = getMaxMinBoardBot (Game board col) positions
+      print (Game (fst boardAndList) opCol)
+      botVSbot (Game (fst boardAndList) opCol) (snd boardAndList)
   where
     opCol = changeColor col
 
@@ -126,6 +139,8 @@ main :: IO ()
 main = do
   putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
   let emptyBoard = Board Map.empty
+  let board1 = addToBoard (Position 2 2) Black emptyBoard
   --playerVSplayer (Game emptyBoard White)
-  computerVSplayer (Game emptyBoard White) []
+  --computerVSplayer (Game emptyBoard White) []
+  botVSbot (Game board1 White) (possibleMoves board1)
   putStr ""

@@ -9,7 +9,7 @@ import Position
 
 -----------------------------------------------
 
-nums = [1,2..11]
+nums = [1,2..19] -- last number defines size of board
 chars = ['A'..'Z']
 
 -----------------------------------------------
@@ -29,11 +29,9 @@ addToBoard pos col board@(Board prevMap)
   | checkPos pos board  = Board(Map.insert pos col prevMap)
   | otherwise           = board
 
--- Returns maybe color of checked position
 getPosColor :: Position -> Board -> Maybe Color
 getPosColor pos (Board boardMap) = Map.lookup pos boardMap
 
--- Returns all occupied positions
 getKeys :: Board -> [Position]
 getKeys (Board boardMap) = Map.keys boardMap
 
@@ -86,8 +84,6 @@ checkPos pos board = checkPosRange pos && checkPosAvailable pos board
 
 --------- check neighbors within board --------
 
--- Checks if neighbor isn't out of board or occupied,
--- unchecked might be obtained by using getPointNeighbors from "Position.hs"
 checkPointNeighbors :: Position -> Board -> [Position]
 checkPointNeighbors pos board = [n | n <- getPointNeighbors pos, checkPos n board]
 

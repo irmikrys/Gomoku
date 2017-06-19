@@ -15,7 +15,7 @@ import Board
 -----------------------------------------------
 
 rateDirections = [East, SouthEast, South, SouthWest] -- directions going down the board - map is sorted in the descending order
-numToWin = 3 -- you can change number of discs in-a-row needed to win (2-5)
+numToWin = 5 -- you can change number of discs in-a-row needed to win (2-5)
 
 -----------------------------------------------
 
@@ -30,7 +30,7 @@ instance Eq Game where
 ---------------- player label -----------------
 
 playerLabel :: Color -> Board -> String
-playerLabel col board = "\nPlayer: " ++ show col ++ " rate: " ++ "\n"
+playerLabel col board = "\nPlayer: " ++ show col ++ "\n"
 
 ---------------- rate function ----------------
 
@@ -50,6 +50,7 @@ rateAllDirs game colPosList =
   sum (parMap r0 (rateDir game colPosList) rateDirections)
 
 rateDir :: Game -> [Position] -> Direction -> Int
+rateDir _ [] _ = 0
 rateDir game colPosList dir = valuesEvaluated
   where
     allSequences = findSeqsInDir (head colPosList) colPosList [] dir -- find sequences in the direction
@@ -71,6 +72,7 @@ evaluateAllSeq game dir = map (evaluateSequence game dir)
 
 -- Checks if the sequence is both side opened or one side or not at all
 evaluateSequence :: Game -> Direction -> [Position] -> Float
+evaluateSequence _ _ [] = 0
 evaluateSequence game dir posList
   | check == 2 = fromIntegral (length posList) + 0.5
   | check == 1 = fromIntegral (length posList)
@@ -80,6 +82,7 @@ evaluateSequence game dir posList
 
 -- Sums checks of both ends of positions sequence
 checkEnds :: Game -> Direction -> [Position] -> Int
+checkEnds _ _ [] = 0
 checkEnds game@(Game board col) dir positions = result
   where
     firstEnd = checkEnd game (opposite dir) (head positions)
@@ -117,10 +120,10 @@ value counter = case counter of
   2 -> 10
   2.5 -> 15
   3 -> 40
-  3.5 -> 50
-  4 -> 120
-  4.5 -> 200
-  5 -> 1000
+  3.5 -> 80
+  4 -> 140
+  4.5 -> 500
+  5 -> 5000
   _ -> 0
 
 -- Returns list of positions occupied by current color
@@ -144,13 +147,13 @@ nextPossibleMoves (Game board@(Board boardMap) color) =
 -- New neighbors don't include elems already in posList, current pos and
 -- occupied positions (already defined in getPointNeighbors)
 nextMoves :: Game -> Position -> [Position] -> [Position]
-nextMoves (Game board col) pos posList  =
-  newPosList where
+nextMoves (Game board col) pos posList  = newPosList
+  where
     updatedPosList = List.delete pos posList
     neighbors = checkPointNeighbors pos board
     newPosList = updatedPosList ++ [p | p <- neighbors, p `notElem` updatedPosList, p /= pos]
 
--- Generates next possible moves
+-- Generates next possible games
 nextGames :: Game -> Position -> [Position] -> [Game]
 nextGames game@(Game board col) pos posList =
   [Game (addToBoard p col board) col | p <- nextMoves game pos posList]
@@ -174,13 +177,13 @@ addNotElem list1 list2 = [x | x <- list1, x `notElem` list2] ++ list2
 maxmin :: Int -> Int -> Color -> Tree Game -> Int
 maxmin k maxK color (Node game list)
   | null list = rateGame game
-  | k > maxK && k `mod` 2 == 0 = index
+  | k > maxK && k `mod` 2 == 0 = indexMax
   | k > maxK  && k `mod` 2 /= 0 = indexMin
   | k `mod` 2 == 0 = maximum (map (maxmin (k+1) maxK color) list)
   | otherwise = minimum (map (maxmin (k+1) maxK color) list)
   where
     listM = exploreForest list
-    index = unJust (List.elemIndex (maximum listM) listM)
+    indexMax = unJust (List.elemIndex (maximum listM) listM)
     indexMin = unJust (List.elemIndex (minimum listM) listM)
 
 -- Rates each game in the list
@@ -188,11 +191,27 @@ exploreForest :: [Tree Game] -> [Int]
 exploreForest [] = []
 exploreForest (Node game _ : rest) = rateGame game : exploreForest rest
 
-getMaxMinBoard :: Game -> Position -> [Position] -> Board
-getMaxMinBoard game@(Game board col) pos addedPosNeighbors = boardMM
+getMaxMinBoard :: Game -> Position -> [Position] -> (Board, [Position])
+getMaxMinBoard game@(Game board col) pos addedPosNeighbors = (boardMaxMin, updatedList)
   where
-    Node g list = gameToTree game (nextMoves game pos addedPosNeighbors)
-    Node (Game boardMM _) _ = list !! maxmin 0 2 col (Node g list)
+    updatedList = nextMoves game pos addedPosNeighbors
+    Node g list = gameToTree game updatedList
+    Node (Game boardMaxMin _) _ = list !! maxmin 1 0 col (Node g list)
+
+getMaxMinBoardBot :: Game -> [Position] -> (Board, [Position])
+getMaxMinBoardBot game@(Game board col) addedPosNeighbors = (boardMaxMin, updatedList)
+  where
+    updatedList = possibleMoves board
+    Node g list = gameToTree game updatedList
+    Node (Game boardMaxMin _) _ = list !! maxmin 1 0 col (Node g list)
+
+possibleMoves:: Board -> [Position]
+possibleMoves (Board b) = [Position x y | x<-[1..19], y<-[1..19], Map.notMember (Position x y) b, hasNeighbors (Position x y) (Map.keys b)]
+
+hasNeighbors:: Position -> [Position] -> Bool
+hasNeighbors (Position x y) listOfPosition =
+    any (\(xTranslation, yTranslation) -> (Position (x+xTranslation) (y+yTranslation) `elem` listOfPosition)) [(x,y) | x<-[-1..1], y<-[-1..1], not(x==0 && y==0)]
+
 
 ------------------- victory -------------------
 
@@ -204,14 +223,14 @@ victory game = any (numToWinInAllDirs posList) posList
 numToWinInAllDirs :: [Position] -> Position -> Bool
 numToWinInAllDirs posList pos = any (numToWinInADir pos posList 1) Position.directions
 
--- Checks if there is a five-in-a-row sequence of positions in a specified dir
+-- Checks if there is a numToWin-in-a-row sequence of positions in a specified dir
 numToWinInADir :: Position -> [Position] -> Int -> Direction -> Bool
 numToWinInADir pos posList num dir
   | pos `elem` posList && num == numToWin = True
   | pos `elem` posList = True && numToWinInADir (getNeighbor pos dir) posList  (num + 1) dir
   | otherwise = False
 
-------------------- main tester ----------------------
+------------------------ tester -----------------------
 
 testSeq = do
   let empty = Board Map.empty
@@ -224,34 +243,5 @@ testSeq = do
   --let seqs = findSeqsInDir (head list) list [] North
   --show seqs
   --let rated = rateDir game list South
-  let rated = rateAllDirs game list
+  let rated = rateGame game
   print rated
-
-defMain :: IO ()
-defMain = do
-  putStrLn ("\n============== " ++ show White ++ " Gomoku " ++ show Black ++ " ===============")
-  let scopeBoard = Board Map.empty
-  let col = White
-  let col2 = changeColor col
-  let pos = Position 4 6
-  let board = addToBoard pos col scopeBoard
-  let game = Game board col2
-  let posList = nextMoves game pos []
-  print posList
-  let gamesList = nextGames game pos []
-  print gamesList
-  let pos2 = Position 5 7
-  let board2 = addToBoard pos2 col2 board
-  let game2 = Game board2 col
-  let posList2 = nextMoves game2 pos2 posList
-  print posList2
-  let gamesList2 = nextGames game2 pos2 posList
-  print gamesList2
-  --let empty = emptyBoard
-  --gameLoop empty
-  putStrLn ""
-  --askPlayer (Game scopeBoard col)
-
-
--- levels (lista do poziomu)
--- Data.Tree.Pretty (rysowanie drzewa)
